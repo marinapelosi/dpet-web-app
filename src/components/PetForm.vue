@@ -23,7 +23,7 @@
             :items="petTypes"
             item-title="name"
             item-value="slug"
-            variant="solo-inverted"         
+            variant="solo"         
           >
             <template v-slot:item="{ props, item }">
               <v-list-item v-bind="props">
@@ -47,7 +47,7 @@
           <v-text-field
             v-model="newPet.name"
             :label="`What is your ${newPet.pet_type}'s name?`"
-            variant="outlined"
+            variant="solo"
           ></v-text-field>
 
           <v-autocomplete
@@ -56,8 +56,7 @@
             item-title="name"
             item-value="id"
             label="What breed are they?"
-            variant="outlined"
-            clearable
+            variant="solo"
             append-inner-icon="mdi-magnify"
             :menu-props="{ offsetY: true }"
             return-object
@@ -89,16 +88,24 @@
               label="Describe the mix"
               variant="outlined"
             ></v-text-field>
-          </v-radio-group>        
+          </v-radio-group>  
+          
+          <div align="left">
+            <v-label style="font-size:14px; color: #111111;"><b>What gender are they?</b></v-label><br />
+            <v-btn-toggle v-model="newPet.gender" color="info">
+              <v-btn value="female">Female</v-btn>
+              <v-btn value="male">Male</v-btn>
+            </v-btn-toggle>
+          </div>          
 
+          <br /><br />
           <v-btn prepend-icon="mdi-arrow-left" variant="flat" @click="previousStep" :disabled="!newPet.pet_type">
             Back
           </v-btn>
           <v-btn append-icon="mdi-arrow-right" variant="flat" color="info" @click="nextStep" :disabled="!isStepValid">
             Continue
           </v-btn>
-        </div>
-        
+        </div>        
 
         <v-btn prepend-icon="mdi-close" variant="flat" color="error"  @click="backToPetList">
             Cancel
@@ -127,6 +134,7 @@
           name: '',                    
           is_unknown_breed: false, 
           is_mixed_breed: false,
+          mix_breed_description: '',
           birth_date: '',
           approximate_age: '',
           gender: '', 
@@ -155,6 +163,8 @@
         switch (this.step) {
           case 1:
             return !!this.newPet.pet_type;          
+          case 2:
+            return (this.newPet.name && this.newPet.gender && (this.newPet.breed || this.newPet.is_unknown_breed || (this.newPet.is_mixed_breed && this.newPet.mix_breed_description)));
           default:
             return false;
         }
@@ -261,7 +271,8 @@
       }
     },
     watch: {
-      async step(newValue, oldValue) {        
+      async step(newValue, oldValue) {   
+        console.log(this.newPet)     
         if (newValue == 2 && oldValue == 1) {
           try {
             const response = await this.fetchBreeds();
@@ -295,10 +306,12 @@
         }
                 
         if (newValue === null) {
-          this.newPet.breed = newValue;
-          this.resetIsUnknownBreedOption();
-          this.resetIsMixBreedOption();
+          this.newPet.breed = newValue;          
         }
+
+        this.resetIsUnknownBreedOption();
+        this.resetIsMixBreedOption();
+        this.selectedOtherBreedOption = null;
       },
       
     }
@@ -378,4 +391,3 @@
     opacity: 0.4;
   }
   </style>
-  
