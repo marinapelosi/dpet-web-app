@@ -7,7 +7,7 @@
       <div class="content-container">
         <h4 class="text-center my-4">Pet List</h4>
 
-        <v-btn prepend-icon="mdi-plus" variant="outlined">
+        <v-btn prepend-icon="mdi-plus" variant="outlined" @click="openFormRegistration">
             Register new pet
         </v-btn>
         <v-card
@@ -54,7 +54,7 @@
   
     async created() {
         try {
-            const response = await ApiService.get("/pets");
+            const response = await this.fetchPets();
             if (Array.isArray(response.data)) {
                 this.pets = response.data;
             } else {
@@ -70,11 +70,14 @@
     methods: {
       async fetchPets() {
         try {
-          const data = await ApiService.get(API_ROUTES.PETS);
-          this.pets = data;
+          const response = await ApiService.get(API_ROUTES.PETS);
+          return response;
         } catch (error) {
           console.error("Erro ao buscar pets:", error);
         }
+      },
+      openFormRegistration() {
+        this.$router.push('/form');
       }
     }
   };
@@ -110,6 +113,13 @@
     border-radius: 5px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   }
+
+  h4 {
+    color: #003366;
+    font-weight: bold;
+    font-size: 18px;
+    font-family: Arial, sans-serif;
+    }
  
   </style>
   
