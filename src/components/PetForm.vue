@@ -39,6 +39,10 @@
           <v-btn append-icon="mdi-arrow-right" variant="flat" color="info" @click="nextStep" :disabled="!isStepValid">
             Continue
           </v-btn>
+          <br />
+          <v-btn prepend-icon="mdi-close" variant="flat" color="error"  @click="backToPetList">
+            Cancel
+          </v-btn>
         </div>
 
         <div v-if="step === 2">
@@ -84,7 +88,7 @@
             
             <v-text-field
               v-if="newPet.is_mixed_breed"
-              v-model="newPet.mix_breed_description"              
+              v-model="newPet.mixed_breed_description"              
               label="Describe the mix"
               variant="outlined"
             ></v-text-field>
@@ -105,11 +109,95 @@
           <v-btn append-icon="mdi-arrow-right" variant="flat" color="info" @click="nextStep" :disabled="!isStepValid">
             Continue
           </v-btn>
-        </div>        
-
-        <v-btn prepend-icon="mdi-close" variant="flat" color="error"  @click="backToPetList">
+          <br />
+          <v-btn prepend-icon="mdi-close" variant="flat" color="error"  @click="backToPetList">
             Cancel
-        </v-btn>
+          </v-btn>
+        </div>   
+        
+        <div v-if="step === 3">
+          <h2>Tell us about your {{ newPet.pet_type }}</h2>        
+          <br />          
+          
+          <div align="left">
+            <v-label style="font-size:14px; color: #111111;"><b>Do you know their date of birth?</b></v-label><br />
+            <v-btn-toggle v-model="whatShowAboutBirthDate" color="info">
+              <v-btn value="datepicker">Yes</v-btn>
+              <v-btn value="approximate_age">No</v-btn>
+            </v-btn-toggle>
+          </div>    
+          <br />                      
+ 
+          <v-text-field
+            v-if="whatShowAboutBirthDate == 'datepicker'"
+            v-model="newPet.birth_date"
+            label="Data"
+            type="date"
+            variant="solo"
+            :max="new Date().toISOString().split('T')[0]"
+          ></v-text-field>       
+
+          <v-select
+            v-if="whatShowAboutBirthDate == 'approximate_age'"
+            v-model="newPet.approximate_age"
+            :items="Array.from({ length: 20 }, (_, i) => i + 1) "
+            label="Approximate age (years old)"
+            variant="solo"
+          />    
+
+          <br /><br />
+          <v-btn prepend-icon="mdi-arrow-left" variant="flat" @click="previousStep" :disabled="!newPet.pet_type">
+            Back
+          </v-btn>
+          <v-btn append-icon="mdi-arrow-right" variant="flat" color="info" @click="savePet" :disabled="!isStepValid">
+            Finish and Save
+          </v-btn>
+          <br />
+          <v-btn prepend-icon="mdi-close" variant="flat" color="error"  @click="backToPetList">
+            Cancel
+          </v-btn>
+        </div>
+        <div v-if="step === 4">
+          <div align="center">            
+            <v-icon :icon="'mdi-' + petCreated.pet_type.slug" style="font-size:100px" :color="petCreated.gender.toLowerCase() === 'female' ? 'pink' : 'blue'"></v-icon>
+          </div>
+          <br />
+          <v-list-item-title>
+            <b>{{ petCreated.name }}</b>, {{ petCreated.approximate_age }} yo 
+            <span v-if="petCreated.birth_date" style="font-size:12px"><b><i>(Born in {{ petCreated.birth_date }})</i></b></span>
+            <span v-else style="font-size:12px"><b><i>approximated</i></b></span>
+          </v-list-item-title>
+          <br />
+          <v-chip v-if="petCreated.gender" :color="petCreated.gender.toLowerCase() === 'female' ? 'pink' : 'blue'" >
+            <v-icon 
+              :icon="'mdi-gender-' + petCreated.gender.toLowerCase()"             
+              size="x-large">
+            </v-icon>
+          </v-chip>         
+          
+          <v-chip v-if="petCreated.breed" :color="(petCreated.breed.is_dangerous) ? 'error' : 'default'">
+              <v-icon v-if="petCreated.breed.is_dangerous" icon="mdi-alert" size="x-large"></v-icon>
+              {{ petCreated.breed.name }}
+          </v-chip>  
+          
+          <v-chip v-if="petCreated.is_unknown_breed" color="warning">
+              <v-icon icon="mdi-help" size="x-large"></v-icon>
+              Unknown Breed
+          </v-chip>  
+
+          <v-chip v-if="petCreated.is_mixed_breed" color="warning">
+              <v-icon icon="mdi-recycle" size="x-large"></v-icon>
+              Mixed breed: <b>{{ petCreated.mixed_breed_description }}</b>
+          </v-chip> 
+
+          <br /><br />
+          <v-btn prepend-icon="mdi-repeat" variant="flat" @click="startOver">
+            Add another pet
+          </v-btn>
+          <v-btn append-icon="mdi-arrow-right" variant="flat" color="info" @click="backToPetList">
+            Back to the list
+          </v-btn>
+        </div>
       </div>
     </div>
   </template>
@@ -126,6 +214,7 @@
         selectedPetTypeOption: null,
         selectedBreedOption: '',
         selectedOtherBreedOption: null,
+        whatShowAboutBirthDate: 'nothing_for_now_wait_user_select',
         breeds: [],
         step: 1,
         newPet: { 
@@ -134,11 +223,12 @@
           name: '',                    
           is_unknown_breed: false, 
           is_mixed_breed: false,
-          mix_breed_description: '',
+          mixed_breed_description: '',
           birth_date: '',
           approximate_age: '',
           gender: '', 
-        },        
+        },         
+        petCreated: {},
       };
     },
     mounted() {
@@ -164,7 +254,11 @@
           case 1:
             return !!this.newPet.pet_type;          
           case 2:
-            return (this.newPet.name && this.newPet.gender && (this.newPet.breed || this.newPet.is_unknown_breed || (this.newPet.is_mixed_breed && this.newPet.mix_breed_description)));
+            return (this.newPet.name && this.newPet.gender && (this.newPet.breed || this.newPet.is_unknown_breed || (this.newPet.is_mixed_breed && this.newPet.mixed_breed_description)));
+          case 3:
+            return (this.newPet.birth_date || this.newPet.approximate_age);
+          case 4:
+            return true;
           default:
             return false;
         }
@@ -173,7 +267,7 @@
     methods: {
 
       backToPetList() {
-        if (this.step >= 2) {
+        if (this.step >= 2 && this.step < 4) {
           Swal.fire({
             title: "Are you sure?",
             text: "Your progress will be lost!",
@@ -191,6 +285,10 @@
         } else {
           this.$router.push('/');
         }
+      },
+
+      startOver() {
+          location.reload();     
       },
 
       pawClass(stepNumber) {
@@ -259,20 +357,38 @@
 
       resetIsMixBreedOption() {   
         this.newPet.is_mixed_breed = false;
-        this.newPet.mix_breed_description = null;
+        this.newPet.mixed_breed_description = null;
       },
 
       resetBreedSelect() {   
         this.newPet.breed = null;
       },
 
-      savePet() {
-        this.$emit('save', { ...this.newPet });
+      async savePet() {
+        try {
+
+          const petData = { ...this.newPet };
+
+          const response = await ApiService.post(API_ROUTES.PETS, petData);
+          
+          if (response.data) {            
+            this.petCreated = response.data;
+            Swal.fire({
+              icon: 'success',
+              title: 'Welcome to our family '+this.petCreated.name+'!',
+              text: response.message
+            });
+            this.step++;
+          }          
+
+        } catch (error) {
+          console.error('Unexpected error while saving pet: ', error);
+        }
       }
     },
     watch: {
       async step(newValue, oldValue) {   
-        console.log(this.newPet)     
+         
         if (newValue == 2 && oldValue == 1) {
           try {
             const response = await this.fetchBreeds();
@@ -313,6 +429,15 @@
         this.resetIsMixBreedOption();
         this.selectedOtherBreedOption = null;
       },
+      whatShowAboutBirthDate(newValue) {
+        if (newValue == 'datepicker') {
+          this.newPet.approximate_age = null;
+        }
+
+        if (newValue == 'approximate_age') {
+          this.newPet.birth_date = null;
+        }
+      }
       
     }
 

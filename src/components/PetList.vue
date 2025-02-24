@@ -24,15 +24,35 @@
                     style="border: 1px solid #cccccc; margin-top: 5px; text-align: left"
                 >
                     <template v-slot:prepend>
-                    <v-icon icon="mdi-dog" style="font-size: 50px"></v-icon>
+                        <v-icon :icon="'mdi-' + pet.pet_type.slug" style="font-size: 50px" :color="pet.gender.toLowerCase() === 'female' ? 'pink' : 'blue'"></v-icon>
                     </template>
 
-                    <v-list-item-title>{{ pet.name }}, {{ pet.approximate_age }} yo</v-list-item-title>
-
-                    <v-chip color="error">
-                        <v-icon icon="mdi-alert" size="x-large"></v-icon>
-                        Dangerous
+                    <v-list-item-title>
+                    {{ pet.name }}, {{ pet.approximate_age }} yo 
+                    <span v-if="pet.birth_date" style="font-size:12px"><b><i>(Born in {{ pet.birth_date }})</i></b></span>
+                    <span v-else style="font-size:12px"><b><i>approximated</i></b></span>
+                    </v-list-item-title>
+                    <v-chip v-if="pet.gender" :color="pet.gender.toLowerCase() === 'female' ? 'pink' : 'blue'" >
+                        <v-icon 
+                        :icon="'mdi-gender-' + pet.gender.toLowerCase()"             
+                        size="x-large">
+                        </v-icon>
+                    </v-chip>         
+                    
+                    <v-chip v-if="pet.breed" :color="(pet.breed.is_dangerous) ? 'error' : 'default'">
+                        <v-icon v-if="pet.breed.is_dangerous" icon="mdi-alert" size="x-large"></v-icon>
+                        {{ pet.breed.name }}
                     </v-chip>
+
+                    <v-chip v-if="pet.is_unknown_breed" color="warning">
+                        <v-icon icon="mdi-help" size="x-large"></v-icon>
+                        Unknown Breed
+                    </v-chip>
+
+                    <v-chip v-if="pet.is_mixed_breed" color="warning">
+                        <v-icon icon="mdi-recycle" size="x-large"></v-icon>
+                        Mixed breed: <b>{{ pet.mixed_breed_description }}</b>
+                    </v-chip> 
                 </v-list-item>
             </v-list>
         </v-card>
